@@ -1,0 +1,3 @@
+﻿  SimpleJumper.cpp
+L:\osisp\courseProject\SimpleJumper\SimpleJumper\Color.h(27): warning C4715: 'Color::getRandColor': not all control paths return a value
+  SimpleJumper.vcxproj -> L:\osisp\courseProject\SimpleJumper\Debug\SimpleJumper.exe
