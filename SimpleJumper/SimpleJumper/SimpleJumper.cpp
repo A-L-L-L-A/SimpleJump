@@ -29,14 +29,17 @@ int score = 0;
 int curSpeed = 0;
 int acceleration = 2;
 bool pause = true;
+COLORREF curColor;
+
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM , LPARAM);
 VOID    CALLBACK TimerProc(HWND, UINT, UINT, DWORD);
 VOID CALLBACK TimerAcceleration(HWND, UINT, UINT, DWORD);
 PAINTSTRUCT FillPaintStruct(RECT);
 void GameLogic(HDC);
-void DrawGameField(HDC);
-
-
+void DrawGameField(HDC,COLORREF);
+void SetPause(HWND);
+void TextOutInfo(HDC);
+void ChangeColorBack();
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -65,7 +68,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     gameRegion.top += gameRegion.bottom/2 ;
     backColorDay = RGB(240, 240, 240); 
     backColorNight= RGB(100, 100, 100);
-
+    curColor = backColorDay;
     ShowWindow(mainWindow, nCmdShow);
     UpdateWindow(mainWindow);
 
@@ -139,16 +142,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             break;
         case VK_F2:
-            if (pause) {
-                KillTimer(hWnd, TIMER_ACCELERATION);
-                KillTimer(hWnd, TIMER_NEXT_FRAME);
-                pause = !pause;
-            }
-            else {
-                SetTimer(hWnd, TIMER_ACCELERATION, TIME_ACCELERATION, (TIMERPROC)TimerAcceleration);
-                SetTimer(hWnd, TIMER_NEXT_FRAME, curSpeed, (TIMERPROC)TimerProc);
-                pause = !pause;
-            }
+            if (player.exists)
+            SetPause(hWnd);
+                            
             break;
         }
     }
@@ -161,7 +157,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
            // HDC hdcComp = CreateCompatibleDC(hdc);
            // HBITMAP bitmap = CreateCompatibleBitmap(hdcComp, mainWindowSize.right-mainWindowSize.left, mainWindowSize.bottom-mainWindowSize.top);
            // SelectObject(hdcComp, bitmap);
-            DrawGameField(hdc);
+            ChangeColorBack();
+            DrawGameField(hdc,curColor);
             GameLogic(hdc);
             //BitBlt(hdc, 0, 0, gameRegion.right, gameRegion.bottom, hdcComp, 0, 0, SRCCOPY);
             //DeleteObject(bitmap);
@@ -217,11 +214,7 @@ VOID CALLBACK TimerAcceleration(HWND hWnd, UINT uMessage, UINT uEventId, DWORD d
 
 }
 void GameLogic(HDC hdc) {
-    TCHAR score_str[50];
-
-    // Plotting the current score
-    wsprintf(score_str, TEXT("Score: %6d     "), score);
-    TextOut(hdc, 20, 15, score_str, lstrlen(score_str));
+    
     if (player.exists) {
         player.Decending();
         player.DrawPlayer(hdc);
@@ -239,6 +232,7 @@ void GameLogic(HDC hdc) {
                     player.Die();
                     KillTimer(mainWindow, TIMER_ACCELERATION);
                     KillTimer(mainWindow, TIMER_NEXT_FRAME);
+                    SetTimer(mainWindow, TIMER_NEXT_FRAME, TIME_INTERVAL, (TIMERPROC)TimerProc);
                 }
             }
             else {
@@ -265,13 +259,41 @@ void GameLogic(HDC hdc) {
 
     }
     else {
-        TextOut(hdc,20, 50, L"Press F1 to start", 18);
-        TextOut(hdc, 20, 70, L"Press F2 to pause", 18);
     }
+    TextOutInfo(hdc);
 }
-void DrawGameField(HDC hdc) {
-    HBRUSH brush = CreateSolidBrush(backColorDay);
+void DrawGameField(HDC hdc,COLORREF colorBack) {
+    HBRUSH brush = CreateSolidBrush(colorBack);
     SelectObject(hdc, brush);
     Rectangle(hdc, gameRegion.left, gameRegion.top, gameRegion.right, gameRegion.bottom);
     DeleteObject(brush);
+}
+void SetPause(HWND hWnd) {
+    if (pause) {
+        KillTimer(hWnd, TIMER_ACCELERATION);
+        KillTimer(hWnd, TIMER_NEXT_FRAME);
+        pause = !pause;
+    }
+    else {
+        SetTimer(hWnd, TIMER_ACCELERATION, TIME_ACCELERATION, (TIMERPROC)TimerAcceleration);
+        SetTimer(hWnd, TIMER_NEXT_FRAME, curSpeed, (TIMERPROC)TimerProc);
+        pause = !pause;
+    }
+}
+void TextOutInfo(HDC hdc) {
+    TCHAR score_str[50];
+    wsprintf(score_str, TEXT("Score: %6d     "), score);
+    TextOut(hdc, 20, 15, score_str, lstrlen(score_str));
+    TextOut(hdc, 20, 50, L"Press F1 to start", 18);
+    TextOut(hdc, 20, 70, L"Press F2 to pause", 18);
+}
+void ChangeColorBack() {
+    if ((score != 0)&&(score % 100 == 0)) {
+        if (curColor == backColorDay) {
+            curColor = backColorNight;
+        }
+        else {
+            curColor = backColorDay;
+        }
+    }
 }
